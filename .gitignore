@@ -1,0 +1,12 @@
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.scrapy/
+output/
+log/
+.env
+.env.local
+japanese-addresses-master/
+japanese-addresses-master.tar.gz
+*.jsonl
