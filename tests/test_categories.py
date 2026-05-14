@@ -7,20 +7,21 @@ def test_eight_categories():
     slugs = [c["slug"] for c in CATEGORIES]
     assert slugs == [
         "security_cleaning_inspection",
+        "hotel_cleaning",
         "care_welfare",
         "food",
         "factory_manufacturing",
         "light_warehouse",
         "construction_civil",
         "delivery_logistics",
-        "agriculture_fisheries",
     ]
 
 
 def test_each_category_has_keywords_and_label():
     for c in CATEGORIES:
         assert c["keywords"]
-        assert "-" in c["keywords"] or c["slug"] == "food" or c["slug"] == "agriculture_fisheries"
+        # food は単一キーワード、他はすべて bundle (- 区切り)
+        assert "-" in c["keywords"] or c["slug"] == "food"
         assert c["label_jp"]
 
 

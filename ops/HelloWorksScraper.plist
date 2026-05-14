@@ -11,9 +11,9 @@
     <key>StartCalendarInterval</key>
     <dict>
         <key>Hour</key>
-        <integer>4</integer>
-        <key>Minute</key>
         <integer>0</integer>
+        <key>Minute</key>
+        <integer>30</integer>
     </dict>
     <key>WorkingDirectory</key>
     <string>/Users/tatsu/Dropbox/happy_project/ON/HelloWorksScraper</string>

@@ -1,14 +1,22 @@
-"""8 業種 × 47 都道府県 × 雇用形態 2 種 = 752 検索の定数定義。"""
+"""8 業種 × 47 都道府県 × 雇用形態 2 種 = 752 検索の定数定義。
+
+Post-run-1 改訂 (2026-05-14):
+  - 農林水産を削除: 取得量 7 件で構造的に少ない (kyujinbox がアルバイト・派遣の農林水産系を
+    ほぼ持っていない)。
+  - ホテル清掃 (hotel_cleaning) を追加: 警備-清掃-点検 bundle では清掃データが 32 件と
+    旧スクレイパー (ホテル清掃キーワード 416 件/日) と比べて極端に少なかった。旧と同じ
+    単発キーワード検索を専用カテゴリとして併走させる。
+"""
 
 CATEGORIES: list[dict] = [
     {"slug": "security_cleaning_inspection", "keywords": "警備-清掃-点検", "label_jp": "警備・清掃・点検"},
+    {"slug": "hotel_cleaning",               "keywords": "ホテル-清掃",   "label_jp": "ホテル清掃"},
     {"slug": "care_welfare",                 "keywords": "介護-福祉",     "label_jp": "介護・福祉"},
     {"slug": "food",                         "keywords": "飲食",         "label_jp": "飲食"},
     {"slug": "factory_manufacturing",        "keywords": "工場-製造",     "label_jp": "工場・製造"},
     {"slug": "light_warehouse",              "keywords": "軽作業-倉庫",   "label_jp": "軽作業・倉庫"},
     {"slug": "construction_civil",           "keywords": "建築-土木",     "label_jp": "建築・土木"},
     {"slug": "delivery_logistics",           "keywords": "配送-物流",     "label_jp": "配送・物流"},
-    {"slug": "agriculture_fisheries",        "keywords": "農林水産",     "label_jp": "農林水産"},
 ]
 
 PREFECTURES: list[str] = [

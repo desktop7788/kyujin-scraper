@@ -15,9 +15,17 @@ from helloworks_scraper.classify import (
     ("security_cleaning_inspection", "施設警備員(夜勤あり)",       "security",  "警備員"),
     ("security_cleaning_inspection", "交通誘導警備",               "security",  "警備"),
     ("security_cleaning_inspection", "ビル設備点検スタッフ",       "inspection","設備点検"),
+    ("hotel_cleaning",               "ホテル客室清掃スタッフ募集", "cleaning",  "清掃"),
+    ("hotel_cleaning",               "ベッドメイキングスタッフ",   "cleaning",  "ベッドメイキング"),
     ("care_welfare",                 "介護スタッフ",               "care",      "介護"),
+    ("care_welfare",                 "訪問看護師",                 "care",      "訪問看護"),
+    ("care_welfare",                 "看護師パート",               "care",      "看護師"),
     ("care_welfare",                 "障害者支援員",               "welfare",   "障害者支援"),
+    ("care_welfare",                 "保育士募集",                 "welfare",   "保育士"),
+    ("care_welfare",                 "小規模保育園スタッフ",       "welfare",   "保育園"),
     ("food",                         "ホールスタッフ",             "food",      "ホール"),
+    ("food",                         "開店準備・仕込みスタッフ",   "food",      "仕込み"),
+    ("food",                         "惣菜スタッフ",               "food",      "惣菜"),
     ("factory_manufacturing",        "工場での加工作業",           "factory",   "工場"),
     ("factory_manufacturing",        "製造ライン作業員",           "manufacturing","製造"),
     ("light_warehouse",              "倉庫内ピッキング",           "light_work","ピッキング"),
@@ -26,9 +34,6 @@ from helloworks_scraper.classify import (
     ("construction_civil",           "土木作業員",                 "civil",     "土木"),
     ("delivery_logistics",           "宅配ドライバー",             "delivery",  "宅配"),
     ("delivery_logistics",           "物流センター管理",           "logistics", "物流"),
-    ("agriculture_fisheries",        "農作業スタッフ",             "agriculture","農作業"),
-    ("agriculture_fisheries",        "林業作業員",                 "forestry",  "林業"),
-    ("agriculture_fisheries",        "水産加工",                   "fishery",   "水産"),
 ])
 def test_classify_category(category_top, title, expected_category, expected_match):
     cat, match = classify_category(category_top, title)
@@ -126,11 +131,11 @@ def test_classify_item_rejects_non_hourly_salary():
 def test_eight_keys_in_rules():
     assert set(SUBCATEGORY_RULES.keys()) == {
         "security_cleaning_inspection",
+        "hotel_cleaning",
         "care_welfare",
         "food",
         "factory_manufacturing",
         "light_warehouse",
         "construction_civil",
         "delivery_logistics",
-        "agriculture_fisheries",
     }

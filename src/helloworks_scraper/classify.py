@@ -8,18 +8,27 @@ from dataclasses import dataclass
 
 
 # {category_top: [(sub_category, [keywords]), ...]} — 順序が優先順位（先勝ち）
+# Post-run-1 改訂 (2026-05-14):
+#   - agriculture_fisheries ルール削除（categories.py で対象外に）
+#   - hotel_cleaning ルール追加
+#   - care/welfare/food のキーワード辞書を unclassified サンプルから拡張
 SUBCATEGORY_RULES: dict[str, list[tuple[str, list[str]]]] = {
     "security_cleaning_inspection": [
         ("cleaning",    ["清掃", "ホテル", "ハウスキーパー", "ベッドメイキング", "客室"]),
         ("security",    ["警備員", "警備", "巡回", "交通誘導"]),
         ("inspection",  ["設備点検", "点検", "検査員"]),
     ],
+    # 旧スクレイパーと同じ「ホテル清掃」単発検索の専用カテゴリ。
+    # 警備-清掃-点検 bundle で 32 件しか取れなかった清掃データを補完する。
+    "hotel_cleaning": [
+        ("cleaning",    ["清掃", "ホテル", "ハウスキーパー", "ベッドメイキング", "客室"]),
+    ],
     "care_welfare": [
-        ("care",        ["訪問介護", "介護", "ヘルパー", "デイサービス"]),
-        ("welfare",     ["障害者支援", "生活支援", "福祉"]),
+        ("care",        ["訪問介護", "訪問看護", "訪問入浴", "看護師", "看護", "介護", "ヘルパー", "デイサービス"]),
+        ("welfare",     ["障害者支援", "保育士", "保育園", "生活支援", "福祉"]),
     ],
     "food": [
-        ("food",        ["飲食", "ホール", "キッチン", "調理", "厨房", "接客"]),
+        ("food",        ["仕込み", "開店準備", "惣菜", "配膳", "飲食", "ホール", "キッチン", "調理", "厨房", "接客"]),
     ],
     "factory_manufacturing": [
         ("factory",         ["工場"]),
@@ -36,11 +45,6 @@ SUBCATEGORY_RULES: dict[str, list[tuple[str, list[str]]]] = {
     "delivery_logistics": [
         ("delivery",    ["配送", "宅配", "デリバリー", "ドライバー"]),
         ("logistics",   ["物流"]),
-    ],
-    "agriculture_fisheries": [
-        ("agriculture", ["農作業", "農業", "農園", "農"]),
-        ("forestry",    ["林業", "林"]),
-        ("fishery",     ["水産", "漁業", "養殖"]),
     ],
 }
 
