@@ -30,7 +30,9 @@ def _scrapy_settings() -> dict:
         "DOWNLOAD_DELAY": 0.5,
         "RETRY_ENABLED": True,
         "RETRY_TIMES": 5,
-        "RETRY_HTTP_CODES": [500, 502, 503, 504, 408, 403, 404, 400],
+        # 404 を除外: kyujinbox は「該当求人ゼロ」を 404 で返す (例: 警備-清掃-点検 ×
+        # 地方県の e=5 派遣)。404 をリトライしても結果は同じなので時間の無駄。
+        "RETRY_HTTP_CODES": [500, 502, 503, 504, 408, 403, 400],
         "HTTPCACHE_ENABLED": True,
         "HTTPCACHE_POLICY": "helloworks_scraper.spider.CachePolicy",
         "HTTPCACHE_EXPIRATION_SECS": 30 * 24 * 3600,

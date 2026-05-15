@@ -32,10 +32,10 @@ SUBCATEGORY_RULES: dict[str, list[tuple[str, list[str]]]] = {
     ],
     "factory_manufacturing": [
         ("factory",         ["工場"]),
-        ("manufacturing",   ["製造", "組立", "加工", "ライン"]),
+        ("manufacturing",   ["製造", "組み立て", "組立", "加工", "ライン", "取付", "検品", "包装", "シール貼り", "単純作業"]),
     ],
     "light_warehouse": [
-        ("light_work",  ["軽作業", "ピッキング", "仕分け", "梱包"]),
+        ("light_work",  ["軽作業", "ピッキング", "仕分け", "梱包", "組み立て", "組立", "検品", "包装", "シール貼り", "単純作業"]),
         ("warehouse",   ["倉庫"]),
     ],
     "construction_civil": [
