@@ -33,14 +33,33 @@ class KyujinboxV2Spider(scrapy.Spider):
     name = "kyujinbox_v2"
     allowed_domains = ["xn--pckua2a7gp15o89zb.com"]
 
-    def __init__(self, run_id: str, *args, **kwargs):
+    def __init__(self, run_id: str, category: str | None = None,
+                 employment_type: int | None = None, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.run_id = run_id
+        if category is not None:
+            self.categories = [c for c in CATEGORIES if c["slug"] == category]
+            if not self.categories:
+                raise ValueError(
+                    f"unknown category slug: {category!r}. "
+                    f"valid slugs: {[c['slug'] for c in CATEGORIES]}"
+                )
+        else:
+            self.categories = CATEGORIES
+        if employment_type is not None:
+            if employment_type not in EMPLOYMENT_TYPES:
+                raise ValueError(
+                    f"unknown employment_type: {employment_type}. "
+                    f"valid: {EMPLOYMENT_TYPES}"
+                )
+            self.employment_types = [employment_type]
+        else:
+            self.employment_types = EMPLOYMENT_TYPES
 
     def start_requests(self):
-        for category in CATEGORIES:
+        for category in self.categories:
             for area in PREFECTURES:
-                for emp in EMPLOYMENT_TYPES:
+                for emp in self.employment_types:
                     url = _build_listing_url(category["keywords"], area, emp)
                     meta = {
                         "category_top": category["slug"],

@@ -41,12 +41,13 @@ def upload_rows(rows: list[dict], batch_size: int = 500) -> int:
     return total
 
 
-def insert_run_start(run_id: str, started_at: str) -> None:
+def insert_run_start(run_id: str, started_at: str, category_top: str = "legacy_all") -> None:
     client = _make_client()
     client.table(RUNS_TABLE_NAME).insert({
         "run_id": run_id,
         "started_at": started_at,
         "status": "running",
+        "category_top": category_top,
     }).execute()
 
 

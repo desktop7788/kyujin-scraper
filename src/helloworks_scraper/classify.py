@@ -1,67 +1,60 @@
 """業種分類とアイテム品質判定。
 
-category は category_top から切り出した単一業種で、title のキーワードマッチで判定する。
-classify_item は Verdict を返す authoritative なデータ品質フィルタ。
+Post-run-3 改訂 (2026-05-16):
+  - 15 カテゴリ単一キーワード分割で fetch 時点の純度は高くなったが、
+    kyujinbox は「ホテル清掃」フレーズ検索でも「ホテルの調理師」等を
+    related/templated として埋め込んで返してくる仕様。
+  - 旧スクレイパー (SetagayaLab) はこの noise を DB の 2段階フィルタで除去していた:
+      Stage 1: clean_kyujinbox トリガー BEFORE INSERT
+        title に {ホテル, 清掃, ハウスキーパー, ベッドメイキング, 客室} のいずれも
+        含まない行は破棄。
+      Stage 2: delete_unwanted_kyujinbox_records (upload 後に rpc 呼び出し)
+        title が 25 個の cleaning キーワードを含まず、かつ title に
+        「ホテル」または「スタッフ」を含む行を DELETE。
+  - 新では classify_item に組み込んで 1 pass で同じ効果を実現。
+  - hotel_cleaning カテゴリのみ適用 (他カテゴリは旧の対応物がないため別途検証)。
 """
 
 from dataclasses import dataclass
 
 
-# {category_top: [(sub_category, [keywords]), ...]} — 順序が優先順位（先勝ち）
-# Post-run-1 改訂 (2026-05-14):
-#   - agriculture_fisheries ルール削除（categories.py で対象外に）
-#   - hotel_cleaning ルール追加
-#   - care/welfare/food のキーワード辞書を unclassified サンプルから拡張
-SUBCATEGORY_RULES: dict[str, list[tuple[str, list[str]]]] = {
-    "security_cleaning_inspection": [
-        ("cleaning",    ["清掃", "ホテル", "ハウスキーパー", "ベッドメイキング", "客室"]),
-        ("security",    ["警備員", "警備", "巡回", "交通誘導"]),
-        ("inspection",  ["設備点検", "点検", "検査員"]),
-    ],
-    # 旧スクレイパーと同じ「ホテル清掃」単発検索の専用カテゴリ。
-    # 警備-清掃-点検 bundle で 32 件しか取れなかった清掃データを補完する。
-    "hotel_cleaning": [
-        ("cleaning",    ["清掃", "ホテル", "ハウスキーパー", "ベッドメイキング", "客室"]),
-    ],
-    "care_welfare": [
-        ("care",        ["訪問介護", "訪問看護", "訪問入浴", "看護師", "看護", "介護", "ヘルパー", "デイサービス"]),
-        ("welfare",     ["障害者支援", "保育士", "保育園", "生活支援", "福祉"]),
-    ],
-    "food": [
-        ("food",        ["仕込み", "開店準備", "惣菜", "配膳", "飲食", "ホール", "キッチン", "調理", "厨房", "接客"]),
-    ],
-    "factory_manufacturing": [
-        ("factory",         ["工場"]),
-        ("manufacturing",   ["製造", "組み立て", "組立", "加工", "ライン", "取付", "検品", "包装", "シール貼り", "単純作業"]),
-    ],
-    "light_warehouse": [
-        ("light_work",  ["軽作業", "ピッキング", "仕分け", "梱包", "組み立て", "組立", "検品", "包装", "シール貼り", "単純作業"]),
-        ("warehouse",   ["倉庫"]),
-    ],
-    "construction_civil": [
-        ("construction",["建築", "建設", "大工", "施工"]),
-        ("civil",       ["土木", "舗装"]),
-    ],
-    "delivery_logistics": [
-        ("delivery",    ["配送", "宅配", "デリバリー", "ドライバー"]),
-        ("logistics",   ["物流"]),
-    ],
-}
+# 旧 clean_kyujinbox トリガーの 5 キーワード (これがないと INSERT 破棄)
+_HOTEL_CLEANING_STAGE1_KEYWORDS = (
+    "ホテル", "清掃", "ハウスキーパー", "ベッドメイキング", "客室",
+)
+
+# 旧 delete_unwanted_kyujinbox_records の 25 キーワード (これがないと DELETE)
+_HOTEL_CLEANING_STAGE2_KEYWORDS = (
+    "清掃", "客室", "ベッドメイク", "ベッドメイキング", "ベットメイキング",
+    "ハウスキーピング", "ハウスキーパー", "ホテルクリーニング", "ルームクリーニング",
+    "クリーンスタッフ", "クリーニング", "シーツ", "ベッド", "美装", "掃除",
+    "クリーン", "宿泊", "ラブホテル", "そうじ", "リネン", "ルーム",
+    "チェッカー", "共用", "営繕", "メイク",
+)
 
 
 def classify_category(category_top: str, title: str) -> tuple[str, str | None]:
-    """title のキーワードマッチで category_top の sub-category を 1 つ返す。
+    """category_top をそのまま category として返す (15 カテゴリ分割後はサブ分類不要)。"""
+    return category_top, None
 
-    Returns:
-        (category, matched_keyword). マッチなしは ('unclassified', None).
+
+def _hotel_cleaning_title_passes(title: str) -> bool:
+    """旧 clean_kyujinbox トリガー + delete_unwanted の合成判定。
+
+    Stage 1: 5 キーワードのいずれかを含む必要あり。
+    Stage 2: 25 キーワードを含まず、かつ ホテル or スタッフ を含む場合は破棄。
     """
-    if not title or category_top not in SUBCATEGORY_RULES:
-        return "unclassified", None
-    for sub_category, keywords in SUBCATEGORY_RULES[category_top]:
-        for kw in keywords:
-            if kw in title:
-                return sub_category, kw
-    return "unclassified", None
+    if not title:
+        return False
+    # Stage 1
+    if not any(kw in title for kw in _HOTEL_CLEANING_STAGE1_KEYWORDS):
+        return False
+    # Stage 2: drop if NOT(cleaning kw) AND (has ホテル OR スタッフ)
+    has_cleaning_kw = any(kw in title for kw in _HOTEL_CLEANING_STAGE2_KEYWORDS)
+    has_hotel_or_staff = ("ホテル" in title) or ("スタッフ" in title)
+    if has_hotel_or_staff and not has_cleaning_kw:
+        return False
+    return True
 
 
 @dataclass
@@ -80,6 +73,7 @@ def classify_item(item: dict) -> Verdict:
       - missing_address
       - non_hourly
       - wage_over_5000
+      - off_topic_title (category 固有のタイトルキーワード不一致)
     """
     if not item.get("category_top"):
         return Verdict(False, "missing_category_top")
@@ -93,4 +87,12 @@ def classify_item(item: dict) -> Verdict:
         return Verdict(False, "non_hourly")
     if item["wage_numbers"] > 5000:
         return Verdict(False, "wage_over_5000")
+
+    # カテゴリ固有のタイトル絞り込み (旧と等価)
+    # 旧 clean_kyujinbox トリガーは Phase 1 で除去済 → cleaning は無フィルタ。
+    # 2段階フィルタは hotel_cleaning のみに適用する。
+    if item["category_top"] == "hotel_cleaning":
+        if not _hotel_cleaning_title_passes(item["title"]):
+            return Verdict(False, "off_topic_title")
+
     return Verdict(True, None)
