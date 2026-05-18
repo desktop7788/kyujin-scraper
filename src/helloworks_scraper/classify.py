@@ -88,10 +88,14 @@ def classify_item(item: dict) -> Verdict:
     if item["wage_numbers"] > 5000:
         return Verdict(False, "wage_over_5000")
 
-    # カテゴリ固有のタイトル絞り込み (旧と等価)
-    # 旧 clean_kyujinbox トリガーは Phase 1 で除去済 → cleaning は無フィルタ。
-    # 2段階フィルタは hotel_cleaning のみに適用する。
-    if item["category_top"] == "hotel_cleaning":
+    # カテゴリ固有のタイトル絞り込み
+    # cleaning / hotel_cleaning とも、kyujinbox の deep pagination が
+    # 「バリスタ」「保育士」「ピッキング」等の related/templated ad を混ぜて返す
+    # (5/18 検証で新の deep pagination 結果 2,736 件中 86.6% が cleaning kw なしと確認)。
+    # 旧スクレイパーは pagination が浅く noise に触れないため、現状トリガー無しで
+    # 100% 純粋な cleaning を取れているが、新の deep pagination 経路では本フィルタが
+    # noise 除去のために必須。
+    if item["category_top"] in ("hotel_cleaning", "cleaning"):
         if not _hotel_cleaning_title_passes(item["title"]):
             return Verdict(False, "off_topic_title")
 

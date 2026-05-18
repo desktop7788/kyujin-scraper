@@ -159,9 +159,10 @@ def test_hotel_cleaning_title_filter_reject(title):
     assert verdict.reject_reason == "off_topic_title"
 
 
-def test_cleaning_filter_not_applied():
-    # 旧 clean_kyujinbox トリガーは Phase 1 で除去済 → cleaning は title 無フィルタ。
-    # 旧と挙動を揃えるため、cleaning カテゴリには off_topic_title フィルタを適用しない。
+def test_cleaning_filter_applied():
+    # cleaning カテゴリにも hotel_cleaning と同じ 2 段階フィルタを適用。
+    # 旧は pagination 浅で noise 触れずトリガー無しで純粋取得できるが、
+    # 新の deep pagination 経路では noise (バリスタ/保育士/ピッキング等) 混入のため必須。
     item = {
         "url": "https://example.com/jb/abc",
         "title": "オフィス清掃スタッフ",
@@ -174,10 +175,11 @@ def test_cleaning_filter_not_applied():
     verdict = classify_item(item)
     assert verdict.accepted is True
 
-    # cleaning カテゴリでは noise (調理師) も pass する (旧と同じ挙動)
+    # cleaning カテゴリでも noise (調理師) は reject
     item["title"] = "病院の調理師 未経験応相談"
     verdict = classify_item(item)
-    assert verdict.accepted is True
+    assert verdict.accepted is False
+    assert verdict.reject_reason == "off_topic_title"
 
 
 def test_other_categories_not_filtered():
