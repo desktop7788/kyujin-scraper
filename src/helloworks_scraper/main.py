@@ -21,12 +21,12 @@ load_dotenv()
 logger = logging.getLogger(__name__)
 
 
-def _scrapy_settings() -> dict:
+def _scrapy_settings(impersonate: str | None = None) -> dict:
     # 旧 SetagayaLab スクレイパー (Windows) と同一のブラウザらしいヘッダ群。
     # USER_AGENT 単独だと kyujinbox は結果を間引いて返す (実測 旧の 20-35% しか
     # ヒットしない) ため、Sec-Fetch-*, sec-ch-ua, Accept-Language 等を完全移植して
     # 「Windows Chrome 126」相当に擬装する。Cookie は旧でもコメントアウト済 (未送信)。
-    return {
+    settings = {
         "BOT_NAME": "helloworks_scraper",
         "USER_AGENT": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
         "DEFAULT_REQUEST_HEADERS": {
@@ -67,6 +67,17 @@ def _scrapy_settings() -> dict:
         },
         "LOG_LEVEL": "INFO",
     }
+    if impersonate:
+        # scrapy-impersonate を有効化。curl_cffi 経由で本物 Chrome の TLS handshake
+        # (ja4=t13d1517h2_8daaf6152771_... に近い) と HTTP/2 を実現する。
+        # spider 側で各 Request meta["impersonate"]=<target> を設定すること。
+        # TWISTED_REACTOR は AsyncioSelectorReactor 必須。
+        settings["DOWNLOAD_HANDLERS"] = {
+            "http": "scrapy_impersonate.ImpersonateDownloadHandler",
+            "https": "scrapy_impersonate.ImpersonateDownloadHandler",
+        }
+        settings["TWISTED_REACTOR"] = "twisted.internet.asyncioreactor.AsyncioSelectorReactor"
+    return settings
 
 
 def main():
@@ -78,6 +89,11 @@ def main():
     parser.add_argument(
         "--employment-type", type=int, choices=[2, 5], default=None,
         help="特定雇用形態のみ実行 (2=アルバイト・パート, 5=派遣). 未指定で両方"
+    )
+    parser.add_argument(
+        "--impersonate", default=None,
+        help="curl_cffi で本物ブラウザ TLS fingerprint を擬装 (例: chrome124). "
+             "未指定で従来通り Twisted/OpenSSL の素 handshake."
     )
     args = parser.parse_args()
 
@@ -100,12 +116,13 @@ def main():
         pipelines.set_run_stats(stats)
         pipelines.set_jsonl_path(jsonl_path)
         try:
-            process = CrawlerProcess(settings=_scrapy_settings())
+            process = CrawlerProcess(settings=_scrapy_settings(impersonate=args.impersonate))
             process.crawl(
                 KyujinboxV2Spider,
                 run_id=run_id,
                 category=args.category,
                 employment_type=args.employment_type,
+                impersonate=args.impersonate,
             )
             process.start()
         except Exception as e:

@@ -8,6 +8,8 @@ dependencies = [
     "supabase>=2.5.0",
     "python-dotenv>=1.0.0",
     "normalize-japanese-addresses>=0.0.9",
+    "scrapy-impersonate>=1.6.0",
+    "curl-cffi>=0.15.0",
 ]
 
 [dependency-groups]

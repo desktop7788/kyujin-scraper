@@ -20,7 +20,7 @@ from helloworks_scraper.items import KyujinboxV2Item
 from helloworks_scraper.salary import parse_salary
 
 
-META_KEYS = ("category_top", "category_keywords", "area", "employment_type", "scrape_run_id")
+META_KEYS = ("category_top", "category_keywords", "area", "employment_type", "scrape_run_id", "impersonate")
 
 
 def _build_listing_url(keywords: str, area: str, employment_type: int) -> str:
@@ -34,9 +34,13 @@ class KyujinboxV2Spider(scrapy.Spider):
     allowed_domains = ["xn--pckua2a7gp15o89zb.com"]
 
     def __init__(self, run_id: str, category: str | None = None,
-                 employment_type: int | None = None, *args, **kwargs):
+                 employment_type: int | None = None,
+                 impersonate: str | None = None, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.run_id = run_id
+        # curl_cffi 経由で本物ブラウザ TLS fingerprint を擬装する場合のターゲット名
+        # (例: "chrome124"). None なら従来通り Twisted/OpenSSL の素の handshake。
+        self.impersonate = impersonate
         if category is not None:
             self.categories = [c for c in CATEGORIES if c["slug"] == category]
             if not self.categories:
@@ -68,6 +72,8 @@ class KyujinboxV2Spider(scrapy.Spider):
                         "employment_type": emp,
                         "scrape_run_id": self.run_id,
                     }
+                    if self.impersonate:
+                        meta["impersonate"] = self.impersonate
                     yield scrapy.Request(url, callback=self.parse, meta=meta, priority=1)
 
     def parse(self, response):
