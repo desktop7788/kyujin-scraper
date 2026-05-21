@@ -39,7 +39,7 @@ jobs:
       max-parallel: 15
       matrix:
         category: ${{ fromJSON(needs.resolve-matrix.outputs.matrix) }}
-    timeout-minutes: 240
+    timeout-minutes: 480
     concurrency:
       group: scrape-${{ matrix.category }}
       cancel-in-progress: false
