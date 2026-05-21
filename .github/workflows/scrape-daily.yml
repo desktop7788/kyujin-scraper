@@ -1,0 +1,70 @@
+name: scrape-daily
+
+on:
+  schedule:
+    - cron: '30 15 * * *'
+  workflow_dispatch:
+    inputs:
+      categories:
+        description: 'Comma-separated category slugs to run (empty = all 15)'
+        required: false
+        default: ''
+
+permissions:
+  contents: read
+
+jobs:
+  resolve-matrix:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set.outputs.matrix }}
+    steps:
+      - id: set
+        env:
+          INPUT_CATEGORIES: ${{ inputs.categories }}
+        run: |
+          ALL='["cleaning","hotel_cleaning","security","inspection","food","care","welfare","factory","manufacturing","light_work","warehouse","construction","civil","delivery","logistics"]'
+          if [ -z "$INPUT_CATEGORIES" ]; then
+            echo "matrix=$ALL" >> "$GITHUB_OUTPUT"
+          else
+            JSON=$(printf '%s' "$INPUT_CATEGORIES" | python3 -c 'import json,sys;print(json.dumps([s.strip() for s in sys.stdin.read().split(",") if s.strip()]))')
+            echo "matrix=$JSON" >> "$GITHUB_OUTPUT"
+          fi
+
+  scrape:
+    needs: resolve-matrix
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      max-parallel: 15
+      matrix:
+        category: ${{ fromJSON(needs.resolve-matrix.outputs.matrix) }}
+    timeout-minutes: 240
+    concurrency:
+      group: scrape-${{ matrix.category }}
+      cancel-in-progress: false
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      SUPABASE_BATCH_SIZE: ${{ secrets.SUPABASE_BATCH_SIZE }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+
+      - name: Install dependencies
+        run: uv sync --frozen
+
+      - name: Crawl + upload (${{ matrix.category }})
+        run: uv run python -m helloworks_scraper.main --category ${{ matrix.category }}
+
+      - name: Upload jsonl artifact (for debug, 7-day retention)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: jsonl-${{ matrix.category }}-${{ github.run_id }}
+          path: output/*.jsonl
+          retention-days: 7
+          if-no-files-found: ignore
