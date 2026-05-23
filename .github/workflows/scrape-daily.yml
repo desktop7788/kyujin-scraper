@@ -1,8 +1,14 @@
 name: scrape-daily
 
+# 2026-05-24 IP 仮説確定後の方針切替:
+# GitHub Actions runner の海外 datacenter IP では kyujinbox が bot 判定し検索結果を
+# 絞り込むため、本番のルートイン取得が旧 main の 33% にとどまり mode が ¥1,100 →
+# ¥1,300 にズレる。日本 residential IP (Mac 自宅) からの run で旧と同等品質を
+# 確認したため、cron は無効化し Mac launchd jp.helloworks.scraper.v2 (0:30 JST) で
+# 本番運用する。本 workflow は workflow_dispatch でのテスト/比較用に保持。
 on:
-  schedule:
-    - cron: '30 15 * * *'
+  # schedule:
+  #   - cron: '30 15 * * *'
   workflow_dispatch:
     inputs:
       categories:

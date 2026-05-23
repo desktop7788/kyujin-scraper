@@ -54,10 +54,14 @@ def _scrapy_settings(impersonate: str | None = None) -> dict:
         # 404 を除外: kyujinbox は「該当求人ゼロ」を 404 で返す (例: 警備-清掃-点検 ×
         # 地方県の e=5 派遣)。404 をリトライしても結果は同じなので時間の無駄。
         "RETRY_HTTP_CODES": [500, 502, 503, 504, 408, 403, 400],
+        # HTTPCACHE_DIR は env var で外部上書き可能。Dropbox 配下で動かす Mac
+        # launchd 運用時は /tmp/.scrapy-helloworks/httpcache 等に逃がさないと、
+        # 30 日蓄積された数十万ファイルが毎日同期され、複数 scraper を巻き込んで
+        # Dropbox がスタックする (memory: 2026-05-20 cross-scraper-interference)。
         "HTTPCACHE_ENABLED": True,
         "HTTPCACHE_POLICY": "helloworks_scraper.spider.CachePolicy",
         "HTTPCACHE_EXPIRATION_SECS": 30 * 24 * 3600,
-        "HTTPCACHE_DIR": ".scrapy/httpcache",
+        "HTTPCACHE_DIR": os.environ.get("HELLOWORKS_HTTPCACHE_DIR", ".scrapy/httpcache"),
         "DOWNLOADER_MIDDLEWARES": {
             "helloworks_scraper.spider.BackoffMiddleware": 543,
         },
