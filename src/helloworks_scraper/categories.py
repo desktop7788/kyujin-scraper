@@ -6,11 +6,21 @@ Post-run-3 改訂 (2026-05-16):
     (旧スクレイパー実測値と完コピ。23区を都道府県単位で検索すると、
      港区/新宿区/渋谷区等の都心ホテルが「東京都」検索の後段ページに埋もれて
      取得漏れする現象を回避)
+
+2026-05-23 改訂:
+  - hotel_cleaning のみ updated_at=3 を指定。旧 SetagayaLab main (Windows 02:30 daily,
+    旧 Supabase kyujinbox 書き込み) の本番設定が u=3 で約 1,398 件/日を取得していた
+    のに対し、新 u=1 では 382 件/日と約 3.66 倍の差。kyujinbox の URL hash は日次
+    ローテーションするため u=3 は同一求人を 3 日分の異なる URL で取得する仕様で、
+    旧との件数・URL マッチ率を揃えるためにこの値が必要。
+  - 他のカテゴリは updated_at 未指定 (= デフォルト 1)。
 """
 
+# updated_at: kyujinbox URL の `u` パラメータ。1=過去1日, 3=過去3日。
+# 未指定なら spider 側でデフォルト 1。
 CATEGORIES: list[dict] = [
     {"slug": "cleaning",       "keywords": "清掃",       "label_jp": "清掃"},
-    {"slug": "hotel_cleaning", "keywords": "ホテル清掃", "label_jp": "ホテル清掃"},
+    {"slug": "hotel_cleaning", "keywords": "ホテル清掃", "label_jp": "ホテル清掃", "updated_at": 3},
     {"slug": "security",       "keywords": "警備",       "label_jp": "警備"},
     {"slug": "inspection",     "keywords": "点検",       "label_jp": "点検"},
     {"slug": "food",           "keywords": "飲食",       "label_jp": "飲食"},

@@ -23,9 +23,12 @@ from helloworks_scraper.salary import parse_salary
 META_KEYS = ("category_top", "category_keywords", "area", "employment_type", "scrape_run_id", "impersonate")
 
 
-def _build_listing_url(keywords: str, area: str, employment_type: int) -> str:
+DEFAULT_UPDATED_AT = 1
+
+
+def _build_listing_url(keywords: str, area: str, employment_type: int, updated_at: int = DEFAULT_UPDATED_AT) -> str:
     path = urllib.parse.quote(f"{keywords}の仕事-{area}")
-    query = urllib.parse.urlencode({"e": employment_type, "u": 1})
+    query = urllib.parse.urlencode({"e": employment_type, "u": updated_at})
     return f"https://xn--pckua2a7gp15o89zb.com/{path}?{query}"
 
 
@@ -62,9 +65,10 @@ class KyujinboxV2Spider(scrapy.Spider):
 
     def start_requests(self):
         for category in self.categories:
+            updated_at = category.get("updated_at", DEFAULT_UPDATED_AT)
             for area in PREFECTURES:
                 for emp in self.employment_types:
-                    url = _build_listing_url(category["keywords"], area, emp)
+                    url = _build_listing_url(category["keywords"], area, emp, updated_at=updated_at)
                     meta = {
                         "category_top": category["slug"],
                         "category_keywords": category["keywords"],

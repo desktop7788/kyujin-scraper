@@ -56,3 +56,18 @@ def test_70_areas_tokyo_split():
 
 def test_employment_types():
     assert EMPLOYMENT_TYPES == [2, 5]
+
+
+def test_hotel_cleaning_has_updated_at_3():
+    # 旧 SetagayaLab main (Windows 02:30 daily) は u=3 で本番運用していた。
+    # 件数を旧と揃えるため hotel_cleaning slot だけ u=3 にする。
+    hotel = next(c for c in CATEGORIES if c["slug"] == "hotel_cleaning")
+    assert hotel.get("updated_at") == 3
+
+
+def test_other_categories_default_updated_at():
+    # hotel_cleaning 以外は updated_at 未指定 (spider 側のデフォルト 1 が使われる)。
+    for c in CATEGORIES:
+        if c["slug"] == "hotel_cleaning":
+            continue
+        assert "updated_at" not in c, f"unexpected updated_at on {c['slug']}"

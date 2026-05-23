@@ -1,10 +1,11 @@
 # tests/test_spider_meta.py
 import os
+import urllib.parse
 import uuid
 
 from scrapy.http import HtmlResponse, Request
 
-from helloworks_scraper.spider import KyujinboxV2Spider
+from helloworks_scraper.spider import KyujinboxV2Spider, _build_listing_url
 
 
 FIXTURE_DIR = os.path.join(os.path.dirname(__file__), "fixtures")
@@ -96,6 +97,36 @@ def test_parse_propagates_meta_to_next_page():
     for r in next_page_requests:
         for key in ("category_top", "category_keywords", "area", "employment_type", "scrape_run_id"):
             assert r.meta.get(key) == meta[key]
+
+
+def _u_param(url: str) -> str:
+    return urllib.parse.parse_qs(urllib.parse.urlparse(url).query)["u"][0]
+
+
+def test_hotel_cleaning_uses_updated_at_3():
+    spider = KyujinboxV2Spider(run_id="r", category="hotel_cleaning")
+    urls = [r.url for r in spider.start_requests()]
+    assert urls, "expected start requests"
+    assert all(_u_param(u) == "3" for u in urls), (
+        "hotel_cleaning slot must use u=3 to match old SetagayaLab main daily haul"
+    )
+
+
+def test_non_hotel_cleaning_uses_updated_at_1():
+    spider = KyujinboxV2Spider(run_id="r", category="cleaning")
+    urls = [r.url for r in spider.start_requests()]
+    assert urls
+    assert all(_u_param(u) == "1" for u in urls)
+
+
+def test_build_listing_url_default_updated_at_is_1():
+    url = _build_listing_url("清掃", "東京都港区", 2)
+    assert _u_param(url) == "1"
+
+
+def test_build_listing_url_accepts_explicit_updated_at():
+    url = _build_listing_url("ホテル清掃", "東京都港区", 2, updated_at=3)
+    assert _u_param(url) == "3"
 
 
 def test_parse_detail_emits_item_with_meta():
